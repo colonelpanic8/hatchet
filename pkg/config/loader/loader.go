@@ -301,6 +301,8 @@ func (c *ConfigLoader) InitDataLayer() (res *database.Layer, err error) {
 		scf.Runtime.EnforceLimits,
 		scf.Runtime.EnforceLimitsFunc,
 		scf.Runtime.EnableDurableUserEventLog,
+		scf.Runtime.IdempotencyKeyTTL,
+		scf.Runtime.IdempotencyKeyDenyRecheckInterval,
 	)
 
 	if readReplicaPool != nil {

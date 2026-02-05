@@ -104,10 +104,12 @@ func NewRepository(
 	enforceLimits bool,
 	enforceLimitsFunc func(ctx context.Context, tenantId string) (bool, error),
 	enableDurableUserEventLog bool,
+	idempotencyKeyTTL time.Duration,
+	idempotencyKeyDenyRecheckInterval time.Duration,
 ) (Repository, func() error) {
 	v := validator.NewDefaultValidator()
 
-	shared, cleanupShared := newSharedRepository(pool, v, l, payloadStoreOpts, tenantLimitConfig, enforceLimits, enforceLimitsFunc, cacheDuration, enableDurableUserEventLog)
+	shared, cleanupShared := newSharedRepository(pool, v, l, payloadStoreOpts, tenantLimitConfig, enforceLimits, enforceLimitsFunc, cacheDuration, enableDurableUserEventLog, idempotencyKeyTTL, idempotencyKeyDenyRecheckInterval)
 
 	mq, cleanupMq := newMessageQueueRepository(shared)
 

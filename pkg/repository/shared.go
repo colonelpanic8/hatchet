@@ -46,7 +46,9 @@ type sharedRepository struct {
 	payloadStore    PayloadStoreRepository
 	m               TenantLimitRepository
 
-	enableDurableUserEventLog bool
+	enableDurableUserEventLog         bool
+	idempotencyKeyTTL                 time.Duration
+	idempotencyKeyDenyRecheckInterval time.Duration
 }
 
 func newSharedRepository(
@@ -59,6 +61,8 @@ func newSharedRepository(
 	enforceLimitsFunc func(ctx context.Context, tenantId string) (bool, error),
 	cacheDuration time.Duration,
 	enableDurableUserEventLog bool,
+	idempotencyKeyTTL time.Duration,
+	idempotencyKeyDenyRecheckInterval time.Duration,
 ) (*sharedRepository, func() error) {
 	queries := sqlcv1.New()
 	queueCache := cache.New(5 * time.Minute)
@@ -89,21 +93,23 @@ func newSharedRepository(
 	}
 
 	s := &sharedRepository{
-		pool:                        pool,
-		v:                           v,
-		l:                           l,
-		queries:                     queries,
-		queueCache:                  queueCache,
-		stepExpressionCache:         stepExpressionCache,
-		concurrencyStrategyCache:    concurrencyStrategyCache,
-		tenantIdWorkflowNameCache:   tenantIdWorkflowNameCache,
-		stepsInWorkflowVersionCache: stepsInWorkflowVersionCache,
-		stepIdLabelsCache:           stepIdLabelsCache,
-		celParser:                   celParser,
-		env:                         env,
-		taskLookupCache:             lookupCache,
-		payloadStore:                payloadStore,
-		enableDurableUserEventLog:   enableDurableUserEventLog,
+		pool:                              pool,
+		v:                                 v,
+		l:                                 l,
+		queries:                           queries,
+		queueCache:                        queueCache,
+		stepExpressionCache:               stepExpressionCache,
+		concurrencyStrategyCache:          concurrencyStrategyCache,
+		tenantIdWorkflowNameCache:         tenantIdWorkflowNameCache,
+		stepsInWorkflowVersionCache:       stepsInWorkflowVersionCache,
+		stepIdLabelsCache:                 stepIdLabelsCache,
+		celParser:                         celParser,
+		env:                               env,
+		taskLookupCache:                   lookupCache,
+		payloadStore:                      payloadStore,
+		enableDurableUserEventLog:         enableDurableUserEventLog,
+		idempotencyKeyTTL:                 idempotencyKeyTTL,
+		idempotencyKeyDenyRecheckInterval: idempotencyKeyDenyRecheckInterval,
 	}
 
 	tenantLimitRepository := newTenantLimitRepository(s, c, shouldEnforceLimits, enforceLimitsFunc, cacheDuration)
