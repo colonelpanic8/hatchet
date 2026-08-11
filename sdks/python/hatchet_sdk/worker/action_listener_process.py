@@ -13,7 +13,6 @@ import grpc
 from aiohttp import web
 from aiohttp.web_request import Request
 from aiohttp.web_response import Response
-from grpc.aio import UnaryUnaryCall
 from prometheus_client import Gauge, generate_latest
 
 from hatchet_sdk.client import Client
@@ -24,11 +23,7 @@ from hatchet_sdk.clients.dispatcher.action_listener import (
 from hatchet_sdk.clients.dispatcher.dispatcher import DispatcherClient
 from hatchet_sdk.clients.rest.models.update_worker_request import UpdateWorkerRequest
 from hatchet_sdk.config import ClientConfig
-from hatchet_sdk.contracts.dispatcher_pb2 import (
-    STEP_EVENT_TYPE_STARTED,
-    ActionEventResponse,
-    StepActionEvent,
-)
+from hatchet_sdk.contracts.dispatcher_pb2 import STEP_EVENT_TYPE_STARTED
 from hatchet_sdk.logger import logger
 from hatchet_sdk.runnables.action import Action, ActionType
 from hatchet_sdk.runnables.contextvars import (
@@ -99,9 +94,7 @@ class WorkerActionListenerProcess:
         self.action_loop_task: asyncio.Task[None] | None = None
         self.event_send_loop_task: asyncio.Task[None] | None = None
         self.running_step_runs: dict[str, float] = {}
-        self.step_action_events: set[
-            asyncio.Task[UnaryUnaryCall[StepActionEvent, ActionEventResponse] | None]
-        ] = set()
+        self.step_action_events: set[asyncio.Task[None]] = set()
 
         if self.debug:
             logger.setLevel(logging.DEBUG)
@@ -400,18 +393,11 @@ class WorkerActionListenerProcess:
                                 self.now()
                             )
 
-                    send_started_event_task = asyncio.create_task(
-                        self.dispatcher_client.send_step_action_event(
-                            event.action,
-                            event.type,
-                            event.payload,
-                            event.should_not_retry,
-                        )
-                    )
-
-                    self.step_action_events.add(send_started_event_task)
-                    send_started_event_task.add_done_callback(
-                        lambda t: self.step_action_events.discard(t)
+                    await self.dispatcher_client.send_step_action_event(
+                        event.action,
+                        event.type,
+                        event.payload,
+                        event.should_not_retry,
                     )
                 case ActionType.CANCEL_STEP_RUN:
                     logger.debug("unimplemented event send")
